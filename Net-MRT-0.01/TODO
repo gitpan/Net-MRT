@@ -1,0 +1,6 @@
+What to do next:
+
+- Write/arrange POD
+- Functional tests coverage for type=13
+- Functional tests coverage for stream decode
+- Additional examples in POD

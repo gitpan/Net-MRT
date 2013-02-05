@@ -1,0 +1,18 @@
+Revision history for Perl extension Net::MRT.
+
+2012-02-03 0.01 MaxiM Basunov <maxim.basunov@gmail.com>
+    New features:
+        - Introducing module Net::MRT
+        - Decoding type MT_TABLE_DUMP (13) subtypes RIB_IPV4_UNICAST (2)
+          & RIB_IPV6_UNICAST (4)
+        - Decoding BGP attributes:
+          * 1	ORIGIN
+          * 2	AS_PATH (AS_SEQUENCE/AS_SET)
+          * 3	NEXT_HOP (IPv4)
+          * 4	MULTI_EXIT_DISC
+          * 5	LOCAL_PREF
+          * 6	ATOMIC_AGGREGATE
+
+    Improvements:
+
+    Bugfixes:
