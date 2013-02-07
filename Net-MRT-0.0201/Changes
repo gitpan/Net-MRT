@@ -1,5 +1,9 @@
 Revision history for Perl extension Net::MRT.
 
+2012-02-07 0.0201 MaxiM Basunov <maxim.basunov@gmail.com>
+    Improvements:
+        - Adding Test::Deep to TEST_REQUIRES
+
 2012-02-07 0.02 MaxiM Basunov <maxim.basunov@gmail.com>
     Improvements:
         - Check for proper PerlIO via PerlIO_tell
