@@ -1,5 +1,8 @@
+Drop me a request if you want some features/fixes.
+
 What to do next:
 
+- Check for memory leak in XS code
 - Write/arrange POD
 - Functional tests coverage for type=13
 - Functional tests coverage for stream decode

@@ -30,18 +30,12 @@
 // Windows XP workaround for inet_ntop
 // TODO: Windows Vista/7 can use InetNtop
 // TODO: http://vinsworldcom.blogspot.com/2012/08/ipv6-in-perl-on-windows_20.html
-// TODO: Check under Linux
 #ifdef WIN32
     #include "inet_ntop.c"
 #endif
 
 // String buffer size
 #define SBUFF 200
-
-    //# Set binary mode to file
-    //#int i;
-    //#i = PerlIO_binmode(NULL, f, IoTYPE_RDONLY, O_BINARY, 0);
-    //#printf("i=%d\n", i);
 
 // Function to decode single MRT message and compose HV contents
 void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
@@ -88,8 +82,8 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                     entries = ntohs(entries);
 
                     // Prepare entres
-                    AV* av = (AV *)sv_2mortal((SV *)newAV());
-                    hv_stores(rt, "entries", newRV((SV *)av));
+                    AV* av = newAV();
+                    hv_stores(rt, "entries", newRV_noinc((SV *)av));
                     // Loop each entry
                     while (entries > 0)
                     {
@@ -97,7 +91,7 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
 
                         // Prepare Entry HashRef
                         HV* entry = newHV();
-                        av_push(av, newRV((SV *)entry));
+                        av_push(av, newRV_noinc((SV *)entry));
 
                         // Decode one entry
                         uint16_t peer;
@@ -157,7 +151,7 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                                 // 2	AS_PATH	[RFC4271]
                                 case 2:
                                     avTmpAv = (AV *)sv_2mortal((SV *)newAV());
-                                    hv_stores(entry, "AS_PATH", newRV((SV *)avTmpAv));
+                                    hv_stores(entry, "AS_PATH", newRV_inc((SV *)avTmpAv));
                                     while (attribute_remain_len > 0)
                                     {
                                         // Read next AS_PATH subtype
@@ -173,7 +167,7 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                                         if (iPathType == 1) // Compose subarray in case of AS_SET
                                         {
                                             avTmpAv2 = (AV *)sv_2mortal((SV *)newAV());
-                                            av_push(avTmpAv, newRV((SV *)avTmpAv2));
+                                            av_push(avTmpAv, newRV_inc((SV *)avTmpAv2));
                                         }
                                         while (iPathCount > 0) {
                                             iPathCount--;
@@ -187,7 +181,6 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                                 // 3	NEXT_HOP	[RFC4271]
                                 case 3:
                                     mrt_copy_next(&pBgpAttributes, &iTmpI32, 4);
-                                    iTmpI32 = ntohl(iTmpI32);
                                     inet_ntop(AF_INET, &iTmpI32, &ip_address, INET6_ADDRSTRLEN);
                                     hv_stores(entry, "NEXT_HOP", newSVpv(ip_address, 0));
                                     break;// 3	NEXT_HOP	[RFC4271]
@@ -226,12 +219,12 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
 
                     break; // subtype = IPv4/6 UNICAST/MULTICAST
                 default:
-                    snprintf(sbuff, SBUFF, "Unsupported MRT type %d subtype %d in message at %d", mh->type, mh->subtype, msgpos);
+                    snprintf(sbuff, SBUFF, "Unsupported MRT type %d subtype %d in message at %lli", mh->type, mh->subtype, (intmax_t)msgpos);
                     hv_stores(rt, "error", newSVpv(sbuff, 0));
             } // switch subtype
             break; // MT_TABLE_DUMP_V2
         default:
-            snprintf(sbuff, SBUFF, "Unsupported MRT type %d in message at %d", mh->type, msgpos);
+            snprintf(sbuff, SBUFF, "Unsupported MRT type %d in message at %lli", mh->type, (intmax_t)msgpos);
             hv_stores(rt, "error", newSVpv(sbuff, 0));
     } // switch message type
     return;
@@ -251,8 +244,8 @@ PerlIO * f;
         char sbuff[SBUFF] = {};
         HV* rt;
 
-        //if (msgpos == -1)
-            //croak("Invalid filehandle passed to mrt_read_next");
+        if (msgpos == -1)
+            croak("Invalid filehandle passed to mrt_read_next");
         sz = PerlIO_read(f, &mh, 12);
         if (sz == 0)
         {
@@ -276,7 +269,7 @@ PerlIO * f;
             # Check for length to be less than buffer
             if (mh.length > BUFFER_SIZE)
             {
-                snprintf(sbuff, SBUFF, "Message length too big at %d", msgpos);
+                snprintf(sbuff, SBUFF, "Message length too big at %lli", (intmax_t)msgpos);
                 hv_stores(rt, "error", newSVpv(sbuff, 0));
                 PerlIO_seek(f, mh.length, SEEK_CUR);
             } else {
@@ -284,7 +277,7 @@ PerlIO * f;
                 if (mh.length > 0)
                     sz = PerlIO_read(f, &mh.message, mh.length);
                 if ((mh.length > 0) && (sz != mh.length))
-                    croak("Unable to read %d bytes in message at pos %d", mh.length, msgpos);
+                    croak("Unable to read %d bytes in message at pos %lli", mh.length, (intmax_t)msgpos);
 
                 # Try to decode
                 mrt_decode(rt, msgpos, &mh);
@@ -304,7 +297,6 @@ SV*      message;
 
         // Prepare returning variable(s)
         RETVAL = newHV();
-        sv_2mortal((SV*)RETVAL);
 
         // Prepare intermediate variables
         mh.timestamp    = 0;
@@ -320,6 +312,7 @@ SV*      message;
             croak("Unable to process message larger than %d bytes", BUFFER_SIZE);
 
         mrt_decode(RETVAL, 0, &mh);
+        sv_2mortal((SV*)newRV_noinc((SV*)RETVAL));
     OUTPUT:
         RETVAL
 

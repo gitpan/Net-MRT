@@ -1,5 +1,5 @@
 ---
-abstract: 'Perl extension for decoding MRT RAW data'
+abstract: 'Perl extension for fast decode of MRT RAW data'
 author:
   - 'MaxiM Basunov <maxim.basunov@gmail.com>'
 build_requires:
@@ -18,4 +18,4 @@ no_index:
     - t
     - inc
 requires: {}
-version: 0.01
+version: 0.02

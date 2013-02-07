@@ -1,5 +1,14 @@
 Revision history for Perl extension Net::MRT.
 
+2012-02-07 0.02 MaxiM Basunov <maxim.basunov@gmail.com>
+    Improvements:
+        - Check for proper PerlIO via PerlIO_tell
+        - More functional tests for type=13
+
+    Bugfixes:
+        - Fixed memory leak on reference count
+        - Removed ntohl on NEXT_HOP attribute
+
 2012-02-03 0.01 MaxiM Basunov <maxim.basunov@gmail.com>
     New features:
         - Introducing module Net::MRT
@@ -14,5 +23,7 @@ Revision history for Perl extension Net::MRT.
           * 6	ATOMIC_AGGREGATE
 
     Improvements:
+        - Huge improvements in brain.sys
 
     Bugfixes:
+        - Fixed /dev/hands

@@ -33,7 +33,7 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 require XSLoader;
 XSLoader::load('Net::MRT', $VERSION);
@@ -57,6 +57,16 @@ Net::MRT - Perl extension for fast decode of MRT RAW data
     {
         do_something_useful($decode);
     }
+
+    In-memory download/decode:
+    use LWP::Simple;
+    use PerlIO::gzip;
+    use Net::MRT;
+    $LWP::Simple::ua->show_progress(1);
+    $archive = get($url);
+    open $mrt, "<:gzip", \$archive or die $!;
+    while ($dd = Net::MRT::mrt_read_next($mrt)) { do_something_useful($decode); }
+    # Note: In case of errors, reported message offset will be relative to Perl internal buffer
 
     Decode some message of known type/subtype:
     $hash = Net::MRT::mrt_decode_single($type, $subtype, $buffer);
@@ -88,7 +98,9 @@ TODO TODO
 =head1 SEE ALSO
 
 L<http://tools.ietf.org/html/draft-ietf-grow-mrt-13>
+
 L<http://www.ripe.net/data-tools/stats/ris/ris-raw-data>
+
 L<http://www.quagga.net>
 
 =head1 AUTHOR
