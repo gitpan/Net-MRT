@@ -1,9 +1,9 @@
 Net-MRT version 0.01
 ====================
 
-This module intended for fast decoding of MRT information collected from
-Quagga BGP routers
-(refer to http://tools.ietf.org/html/draft-ietf-grow-mrt-13).
+This module intended for decoding RFC6396 Multi-Threaded Routing Toolkit (MRT)
+Routing Information Export Format
+(refer to http://tools.ietf.org/html/rfc6396).
 
 Typical usage is to build IP to AS number reference table or other forms of
 BGP table analyzis in Perl.

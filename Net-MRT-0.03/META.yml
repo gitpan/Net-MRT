@@ -1,5 +1,5 @@
 ---
-abstract: 'Perl extension for fast decode of MRT RAW data'
+abstract: 'Perl extension for decoding RFC6396 Multi-Threaded Routing Toolkit (MRT)'
 author:
   - 'MaxiM Basunov <maxim.basunov@gmail.com>'
 build_requires:
@@ -19,4 +19,4 @@ no_index:
     - t
     - inc
 requires: {}
-version: 0.0201
+version: 0.03

@@ -10,7 +10,10 @@
  */
 
 // Definitions of structures and enums for MRT routing information export format
-// http://tools.ietf.org/html/draft-ietf-grow-mrt-13
+// http://tools.ietf.org/html/rfc6396
+
+#ifndef _MRTTYPES_H
+#define _MRTTYPES_H
 
 // 16k is large enough for BGP UPDATE message
 #define BUFFER_SIZE 16384
@@ -39,7 +42,7 @@ enum MT_TABLE_DUMP_V2_SUBTYPES {
 };
 
 struct _MRT_MESSAGE {
-    uint32_t timestamp;
+    int32_t  timestamp;
     uint16_t type;
     uint16_t subtype;
     uint32_t length;
@@ -47,10 +50,23 @@ struct _MRT_MESSAGE {
 } __attribute__((__packed__));
 typedef struct _MRT_MESSAGE MRT_MESSAGE;
 
-// Helper function to copy next SZ bytes to destination and move pointer
-inline void mrt_copy_next(char ** src, void* const dst, int const sz)
+struct _PEER_TYPE
 {
+    bool ipv6 : 1;
+    bool as32 : 1;
+};
+typedef struct _PEER_TYPE PEER_TYPE;
+
+// Helper function to copy next SZ bytes to destination and move pointer
+inline void mrt_copy_next(char ** src, void* const dst, int const sz, int* remain_len)
+{
+    if (remain_len && *remain_len < sz)
+        croak("Attempt to read %d bytes while buffer contain only %d", sz, *remain_len);
+    *remain_len -= sz;
+
     memcpy(dst, *src, sz);
     *src = *src + sz;
     return;
 }
+
+#endif /* _MRTTYPES_H */
