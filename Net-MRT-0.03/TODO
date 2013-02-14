@@ -1,9 +1,0 @@
-Drop me a request if you want some features/fixes.
-Any binary examples are welcome
-
-What to do next:
-
-- Insert buffer underflow protection (check remaining len)
-- Functional tests coverage for stream decode
-- Additional examples in POD
-- Document TODO places in POD

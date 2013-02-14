@@ -1,5 +1,5 @@
 {
-   "abstract" : "Perl extension for decoding RFC6396 Multi-Threaded Routing Toolkit (MRT)",
+   "abstract" : "Perl extension for decoding RFC6396 Multi-Threaded Routing Toolkit",
    "author" : [
       "MaxiM Basunov <maxim.basunov@gmail.com>"
    ],
@@ -36,5 +36,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.03"
+   "version" : "0.0301"
 }
