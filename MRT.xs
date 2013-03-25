@@ -55,6 +55,9 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
     uint16_t iTmpU16;
     uint32_t iTmpU32;
 
+#   ifdef _DEBUG_
+    printf("mrt_decode_single(): Input type: %d subtype %d data len: %d\n", mh->type, mh->subtype, mh->length);
+#   endif
     switch (mh->type) {
         case MT_TABLE_DUMP_V2:
             switch (mh->subtype) {
@@ -165,9 +168,9 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                     uint16_t iEntries;
                     mrt_copy_next(&pPos, &iEntries, 2, &iRemainingLen);
                     iEntries = ntohs(iEntries);
-
-                    AV* avNextHop = NULL; // NEXT_HOP container
-                    AV* avAsPath  = NULL; // AS_PATH container
+#                   ifdef _DEBUG_
+                    printf("mrt_decode_single(): Decode have %d entries\n", iEntries);
+#                   endif
 
                     // Prepare entres
                     AV* avEntries = newAV();
@@ -177,8 +180,14 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                     while (iEntries > 0)
                     {
                         iEntries--;
+                        AV* avNextHop = NULL; // NEXT_HOP container
+                        AV* avAsPath  = NULL; // AS_PATH container
 
+#                       ifdef _DEBUG_
+                        printf("mrt_decode_single(): %d entries remaining\n", iEntries);
+#                       endif
                         // Prepare Entry HashRef
+
                         HV* hvEntry = newHV();
                         av_push(avEntries, newRV_noinc((SV *)hvEntry));
 
@@ -227,6 +236,9 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                                 iAttributeLen = att_len_8;
                             }
                             iAttributeRemainLen = iAttributeLen;
+#                           ifdef _DEBUG_
+                            printf("mrt_decode_single(): Decoding attribute code %d (len %d)\n", attribute_code, iAttributeLen);
+#                           endif
 
                             // Decode attributes
                             switch (attribute_code)

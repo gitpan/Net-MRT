@@ -60,6 +60,9 @@ typedef struct _PEER_TYPE PEER_TYPE;
 // Helper function to copy next SZ bytes to destination and move pointer
 inline void mrt_copy_next(char ** src, void* const dst, int const sz, int* remain_len)
 {
+#   ifdef _DEBUG_
+    printf("mrt_copy_next(): Call to read %d bytes, remaining %d\n", sz, *remain_len);
+#   endif
     if (remain_len && *remain_len < sz)
         croak("Attempt to read %d bytes while buffer contain only %d", sz, *remain_len);
     *remain_len -= sz;

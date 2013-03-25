@@ -33,7 +33,7 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.0301';
+our $VERSION = '0.0302';
 
 require XSLoader;
 XSLoader::load('Net::MRT', $VERSION);

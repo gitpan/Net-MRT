@@ -1,13 +1,18 @@
 Revision history for Perl extension Net::MRT.
 
-2012-02-14 0.0301 MaxiM Basunov <maxim.basunov@gmail.com>
+2013-03-25 0.0302 MaxiM Basunov <maxim.basunov@gmail.com>
+    bugfixes:
+        - Resolved bug with NEXT_HOP & AS_PATH kept between entries (collecting
+          all AS-Path and NEXT_HOP entries into first route entry)
+
+2013-02-14 0.0301 MaxiM Basunov <maxim.basunov@gmail.com>
     Improvements:
         - All sourcecode changed to UNIX file format
 
     Bugfixes:
         - Resolved bug with orig_time decode as signed integer
 
-2012-02-09 0.03 MaxiM Basunov <maxim.basunov@gmail.com>
+2013-02-09 0.03 MaxiM Basunov <maxim.basunov@gmail.com>
     Improvements:
         - Decoding of BGP attributes:
           * 7	AGGREGATOR
@@ -21,11 +26,11 @@ Revision history for Perl extension Net::MRT.
     Bugfixes:
         - originated_time changed to signed int (rfc6396)
 
-2012-02-07 0.0201 MaxiM Basunov <maxim.basunov@gmail.com>
+2013-02-07 0.0201 MaxiM Basunov <maxim.basunov@gmail.com>
     Improvements:
         - Adding Test::Deep to TEST_REQUIRES
 
-2012-02-07 0.02 MaxiM Basunov <maxim.basunov@gmail.com>
+2013-02-07 0.02 MaxiM Basunov <maxim.basunov@gmail.com>
     Improvements:
         - Check for proper PerlIO via PerlIO_tell
         - More functional tests for type=13
@@ -34,7 +39,7 @@ Revision history for Perl extension Net::MRT.
         - Fixed memory leak on reference count
         - Removed ntohl on NEXT_HOP attribute
 
-2012-02-03 0.01 MaxiM Basunov <maxim.basunov@gmail.com>
+2013-02-03 0.01 MaxiM Basunov <maxim.basunov@gmail.com>
     New features:
         - Introducing module Net::MRT
         - Decoding type MT_TABLE_DUMP (13) subtypes RIB_IPV4_UNICAST (2)
