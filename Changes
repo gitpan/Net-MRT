@@ -1,7 +1,12 @@
 Revision history for Perl extension Net::MRT.
 
+2013-04-04 0.0303 MaxiM Basunov <mbasunov@noction.com>
+    Bugfixes:
+        - Now, refer to $Net::MRT::USE_RFC4760 on how MP_REACH_NLRI will be
+          decoded (as per RFC4760, RFC6396 or do not decode).
+
 2013-03-25 0.0302 MaxiM Basunov <maxim.basunov@gmail.com>
-    bugfixes:
+    Bugfixes:
         - Resolved bug with NEXT_HOP & AS_PATH kept between entries (collecting
           all AS-Path and NEXT_HOP entries into first route entry)
 

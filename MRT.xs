@@ -37,6 +37,9 @@
 // String buffer size
 #define SBUFF 200
 
+// Global variables
+SV* USE_RFC4760;
+
 // Function to decode single MRT message and compose HV contents
 void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
 {
@@ -169,6 +172,7 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                     mrt_copy_next(&pPos, &iEntries, 2, &iRemainingLen);
                     iEntries = ntohs(iEntries);
 #                   ifdef _DEBUG_
+                    printf("mrt_decode_single(): Decoded prefix %s/%d\n", cIpAddress, iPrefixBits);
                     printf("mrt_decode_single(): Decode have %d entries\n", iEntries);
 #                   endif
 
@@ -346,20 +350,59 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                                         avNextHop = newAV();
                                         hv_stores(hvEntry, "NEXT_HOP", newRV_noinc((SV *)avNextHop));
                                     }
-                                    iTmpU8 = (AF == AF_INET ? 4 : 16); // Store size of IP address for AF
-                                    // Read size of MRT MP_REACH_NLRI
-                                    mrt_copy_next(&pBgpAttributes, &iAttributeRemainLen, 1, &iBgpAttributesRemainLen);
-                                    while (iAttributeRemainLen > 0)
+                                    if (SvOK(USE_RFC4760) && SvIV(USE_RFC4760) == 1)
                                     {
-                                        iAttributeRemainLen -= iTmpU8;
-                                        memset(&sa6, 0, sizeof(sa6));
-                                        mrt_copy_next(&pBgpAttributes, &sa6, iTmpU8, &iBgpAttributesRemainLen);
-                                        inet_ntop(AF, &sa6, cIpAddress, INET6_ADDRSTRLEN);
-                                        av_push(avNextHop, newSVpv(cIpAddress, 0));
-                                    }
+                                        // read AFI
+                                        mrt_copy_next(&pBgpAttributes, &iTmpU16, 2, &iBgpAttributesRemainLen);
+                                        iTmpU16 = ntohs(iTmpU16);
+                                        // read/skip SAFI
+                                        mrt_copy_next(&pBgpAttributes, &iTmpU8, 1, &iBgpAttributesRemainLen);
+                                        // read LEN
+                                        mrt_copy_next(&pBgpAttributes, &iTmpU8, 1, &iBgpAttributesRemainLen);
+                                        // validate LEN & decode IP
+                                        if (iTmpU16 == 1 && iTmpU8 == 4)
+                                        {
+                                            // Read and decode IPv4
+                                            memset(&sa6, 0, sizeof(sa6));
+                                            mrt_copy_next(&pBgpAttributes, &sa6, iTmpU8, &iBgpAttributesRemainLen);
+                                            inet_ntop(AF_INET, &sa6, cIpAddress, INET6_ADDRSTRLEN);
+                                            av_push(avNextHop, newSVpv(cIpAddress, 0));
+                                        } else if (iTmpU16 == 2 && iTmpU8 == 16)
+                                        {
+                                            // Read and decode IPv6
+                                            memset(&sa6, 0, sizeof(sa6));
+                                            mrt_copy_next(&pBgpAttributes, &sa6, iTmpU8, &iBgpAttributesRemainLen);
+                                            inet_ntop(AF_INET6, &sa6, cIpAddress, INET6_ADDRSTRLEN);
+                                            av_push(avNextHop, newSVpv(cIpAddress, 0));
+                                        } else {
+                                            snprintf(sbuff, SBUFF, "Unsupported/invalid AFI %d len %d", iTmpU16, iTmpU8);
+                                            hv_stores(hvEntry, "MP_REACH_NLRI", newSVpv(sbuff, 0));
+                                        }
+                                        // Skip to end of attribute
+                                        pBgpAttributes += iAttributeRemainLen - 4 - iTmpU8;
+                                        iBgpAttributesRemainLen -= iAttributeRemainLen - 4 - iTmpU8;
+                                    } else if (SvOK(USE_RFC4760) && SvIV(USE_RFC4760) == -1) {
+                                        pBgpAttributes += iAttributeLen;
+                                        iBgpAttributesRemainLen -= iAttributeLen;
+                                    } else {
+                                        // Use RFC 6396
+                                        iTmpU8 = (AF == AF_INET ? 4 : 16); // Store size of IP address for AF
+                                        // Read size of MRT MP_REACH_NLRI
+                                        mrt_copy_next(&pBgpAttributes, &iAttributeRemainLen, 1, &iBgpAttributesRemainLen);
+#                                       ifdef _DEBUG_
+                                        printf("mrt_decode_single(): Attribute 14 have %u bytes for AF. Remain %d bytes\n", iTmpU8, iAttributeRemainLen);
+#                                       endif
+                                        while (iAttributeRemainLen > 0)
+                                        {
+                                            iAttributeRemainLen -= iTmpU8;
+                                            memset(&sa6, 0, sizeof(sa6));
+                                            mrt_copy_next(&pBgpAttributes, &sa6, iTmpU8, &iBgpAttributesRemainLen);
+                                            inet_ntop(AF, &sa6, cIpAddress, INET6_ADDRSTRLEN);
+                                            av_push(avNextHop, newSVpv(cIpAddress, 0));
+                                        }
+                                    } // end else if RFC4760
                                     break;// 14	MP_REACH_NLRI	[RFC4760]
                                 default:
-                                    snprintf(sbuff, SBUFF, "unsupported%d", attribute_code);
                                     hv_store(hvEntry, sbuff, strlen(sbuff), &PL_sv_undef, 0);
                                     pBgpAttributes += iAttributeLen;
                                     iBgpAttributesRemainLen -= iAttributeLen;
@@ -436,6 +479,56 @@ PerlIO * f;
             XSRETURN(1);
         }
 
+void
+mrt_get_next(f)
+PerlIO * f;
+    PROTOTYPE: *
+    PPCODE:
+        # Definitions
+        Off_t msgpos = PerlIO_tell(f); // Store message position & check for proper handle
+        int sz;
+        MRT_MESSAGE mh;
+        char sbuff[SBUFF] = {};
+        HV* rt;
+
+        if (msgpos == -1)
+            croak("Invalid filehandle passed to mrt_read_next");
+        sz = PerlIO_read(f, &mh, 12);
+        if (sz == 0)
+        {
+            # No data to read
+            ST(0) = &PL_sv_undef;
+            XSRETURN(1);
+        } else {
+            # Network to host for MH
+            mh.timestamp = ntohl(mh.timestamp);
+            mh.type      = ntohs(mh.type);
+            mh.subtype   = ntohs(mh.subtype);
+            mh.length    = ntohl(mh.length);
+
+            # Decode header
+            # Check for length to be less than buffer
+            ST(0) = newSVuv(mh.type);
+            ST(1) = newSVuv(mh.subtype);
+            if (mh.length > BUFFER_SIZE)
+            {
+                snprintf(sbuff, SBUFF, "Message length too big at %lli", (intmax_t)msgpos);
+                PerlIO_seek(f, mh.length, SEEK_CUR);
+                ST(2) = newSVuv(-1);
+                ST(3) = newSVpv(sbuff, strlen(sbuff));
+            } else {
+                # Try to read message
+                if (mh.length > 0)
+                    sz = PerlIO_read(f, &mh.message, mh.length);
+                if ((mh.length > 0) && (sz != mh.length))
+                    croak("Unable to read %d bytes in message at pos %lli", mh.length, (intmax_t)msgpos);
+
+                ST(2) = newSVuv(mh.length);
+                ST(3) = newSVpv(mh.message, mh.length);
+            }
+            XSRETURN(4);
+        }
+
 HV*
 mrt_decode_single(type, subtype, message)
 uint16_t type;
@@ -467,3 +560,7 @@ SV*      message;
         RETVAL
 
 # void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
+
+BOOT:
+    USE_RFC4760 = get_sv("Net::MRT::USE_RFC4760", GV_ADDMULTI);
+    //sv_setiv(USE_RFC4760, 1); // Change default behavior

@@ -228,35 +228,73 @@ my @tests = (
                     { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'COMMUNITY' => ['1:1', '65534:65019' ] },
                 ], }
         ],
-        # Test attribute NEXT_HOP (1xMP_REACH_NLRI)
-        [   "Test attribute NEXT_HOP (1xMP_REACH_NLRI)", 4,
+        # Test attribute NEXT_HOP (1xMP_REACH_NLRI; RFC6396)
+        [   "Test attribute NEXT_HOP (1xMP_REACH_NLRI; RFC6396)", 4,
             "000000002020010DB800018FFF7F3456780014800E111020010DB8000000020000000000000124",
             { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
                     { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124'] },
                 ], }
         ],
-        # Test attribute NEXT_HOP (2xMP_REACH_NLRI)
-        [   "Test attribute NEXT_HOP (2xMP_REACH_NLRI)", 4,
+        # Test attribute NEXT_HOP (2xMP_REACH_NLRI; RFC6396)
+        [   "Test attribute NEXT_HOP (2xMP_REACH_NLRI; RFC6396)", 4,
             "000000002020010DB800018FFF7F3456780024800E212020010DB8000000020000000000000124FE8000000000000000000000DEADBEEF",
             { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
                     { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124', 'fe80::dead:beef'] },
                 ], }
         ],
-        # Test attribute NEXT_HOP (MP_REACH_NLRI + NEXT_HOP)
-        [   "Test attribute NEXT_HOP (NEXT_HOP + MP_REACH_NLRI)", 4,
+        # Test attribute NEXT_HOP (MP_REACH_NLRI + NEXT_HOP; RFC6396)
+        [   "Test attribute NEXT_HOP (NEXT_HOP + MP_REACH_NLRI; RFC6396)", 4,
             "000000002020010DB800018FFF7F345678002B40030401020304800E212020010DB8000000020000000000000124FE8000000000000000000000DEADBEEF",
             { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
                     { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678,
                       'NEXT_HOP' => ['1.2.3.4', '2001:db8:0:2::124', 'fe80::dead:beef'] },
                 ], }
         ],
+        [   sub { $Net::MRT::USE_RFC4760 = 1; } ], # Change variable
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; RFC4760)", 4,
+            "000000002020010DB800018FFF7F3456780019800E1600010104010203040000000000000000000000000000",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['1.2.3.4'] },
+                ], }
+        ],
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; RFC4760)", 4,
+             "000000002020010DB800018FFF7F3456780019800E160002011020010DB80000000200000000000001240000",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124'] },
+                ], }
+        ],
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1+ NEXT_HOP; RFC4760)
+        [   "Test attribute NEXT_HOP (NEXT_HOP + MP_REACH_NLRI)", 4,
+            "000000002020010DB800018FFF7F345678002040030401020304800E16000101040708090A0000000000000000000000000000",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678,
+                      'NEXT_HOP' => ['1.2.3.4', '7.8.9.10'] },
+                ], }
+        ],
+        [   sub { $Net::MRT::USE_RFC4760 = -1; } ], # Change variable
+        # Test attribute NEXT_HOP (1xMP_REACH_NLRI processing disabled)
+        [   "Test attribute NEXT_HOP (1xMP_REACH_NLRI processing disabled)", 4,
+            "000000002020010DB800018FFF7F3456780014800E111020010DB8000000020000000000000124",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => [] },
+                ], }
+        ],
+        [   sub { $Net::MRT::USE_RFC4760 = undef; } ], # Change variable
     );
 
 plan tests => scalar(@tests);
 
 foreach (@tests)
 {
-    cmp_deeply(Net::MRT::mrt_decode_single(13, @{$_}[1], pack 'H*', @{$_}[2]), @{$_}[3], @{$_}[0]);
+    if (ref(@{$_}[0]) eq 'CODE')
+    {
+        @{$_}[0]->();
+        pass("No test here, only code block");
+    } else {
+        cmp_deeply(Net::MRT::mrt_decode_single(13, @{$_}[1], pack 'H*', @{$_}[2]), @{$_}[3], @{$_}[0]);
+    }
 }
 
 done_testing();

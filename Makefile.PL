@@ -8,6 +8,13 @@
 
 use 5.010001;
 use ExtUtils::MakeMaker;
+use strict;
+
+my $deflist = '';
+
+foreach (@ARGV) {
+    $deflist .= "${_} " if /^-D/;
+}
 
 WriteMakefile(
     NAME              => 'Net::MRT',
@@ -24,7 +31,7 @@ WriteMakefile(
     # OBJECT            => '$(O_FILES)', # link all the C files too
     TYPEMAPS          => ['type.map'],
     H                 => ['mrttypes.h',],
-    #CCFLAGS           => '-D_DEBUG_',
+    DEFINE            => $deflist,
     TEST_REQUIRES     => {
         'Test::Deep'      => '0', # or a minimum working version
     }

@@ -33,7 +33,7 @@ our @EXPORT = qw(
 
 );
 
-our $VERSION = '0.0302';
+our $VERSION = '0.0303';
 
 require XSLoader;
 XSLoader::load('Net::MRT', $VERSION);
@@ -294,6 +294,33 @@ Communities decoded as array of communities (16 bit:16 bit)
 
 Refer to L<NEXT_HOP> attribute.
 
+B<NOTE:> The C<MP_REACH_NLRI> attribute can be decoded as per B<RFC4760> or
+B<RFC6396>.
+
+Due to recent changes in Quagga/RIPE RIS, the collected MRT data does not
+follow RFC6396 and the C<MP_REACH_NLRI> should be decoded as described
+in L<RFC4760|http://tools.ietf.org/html/rfc4760>
+
+The C<$Net::MRT::USE_RFC4760> global variable control L<Net::MRT> behavior:
+
+=over
+
+=item *
+
+C<$Net::MRT::USE_RFC4760 = 1;> - Decode as described in B<RFC4760>
+
+=item *
+
+C<$Net::MRT::USE_RFC4760 = undef;> - Decode as described in B<RFC6396>
+(default behavior). Please note that only B<NEXT-HOP> will be decoded.
+
+=item *
+
+C<$Net::MRT::USE_RFC4760 = -1;> - Do not decode C<MP_REACH_NLRI> at all.
+
+=back
+
+
 =head1 SEE ALSO
 
 L<http://tools.ietf.org/html/rfc6396>
@@ -301,6 +328,8 @@ L<http://tools.ietf.org/html/rfc6396>
 L<http://www.ripe.net/data-tools/stats/ris/ris-raw-data>
 
 L<http://www.quagga.net>
+
+L<http://tools.ietf.org/html/rfc4760>
 
 =head1 AUTHOR
 
