@@ -6,3 +6,7 @@ What to do next:
 - Functional tests coverage for stream decode
 - Additional examples in POD
 - Document TODO places in POD
+
+Enable debug output (a lot of output):
+perl Makefile.pl -D_DEBUG_
+make

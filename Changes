@@ -1,5 +1,12 @@
 Revision history for Perl extension Net::MRT.
 
+2014-01-14 0.04 MaxiM Basunov <maxim.basunov@gmail.com>
+    Improvements:
+        - NLRI fully decoded when MP_REACH_MLRI contain data in RFC4760 format
+
+    Bugfixes:
+        - Fixed case of multiple IPv6 addresses in MP_REACH_NLRI (RFC4760)
+
 2013-04-04 0.0303 MaxiM Basunov <mbasunov@noction.com>
     Bugfixes:
         - Now, refer to $Net::MRT::USE_RFC4760 on how MP_REACH_NLRI will be
@@ -20,9 +27,9 @@ Revision history for Perl extension Net::MRT.
 2013-02-09 0.03 MaxiM Basunov <maxim.basunov@gmail.com>
     Improvements:
         - Decoding of BGP attributes:
-          * 7	AGGREGATOR
-          * 8	COMMUNITY
-          * 14	MP_REACH_NLRI (MRT-specific)
+          * 7   AGGREGATOR
+          * 8   COMMUNITY
+          * 14  MP_REACH_NLRI (MRT-specific)
         - Helper array to decode BGP ORIGIN Net::MRT::BGP_ORIGIN
         - NEXT_HOP changed to array due to MP_REACH_NLRI
         - Internal checks against buffer underflow

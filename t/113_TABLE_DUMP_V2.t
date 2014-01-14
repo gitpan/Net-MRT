@@ -251,28 +251,53 @@ my @tests = (
                 ], }
         ],
         [   sub { $Net::MRT::USE_RFC4760 = 1; } ], # Change variable
-        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; RFC4760)
-        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; RFC4760)", 4,
-            "000000002020010DB800018FFF7F3456780019800E1600010104010203040000000000000000000000000000",
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; No NLRI; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; No NLRI; RFC4760)", 4,
+            "000000002020010DB800018FFF7F345678000C800E09000101040102030400",
             { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
-                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['1.2.3.4'] },
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['1.2.3.4'], 'MP_REACH_NLRI' => [], },
                 ], }
         ],
-        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; RFC4760)
-        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; RFC4760)", 4,
-             "000000002020010DB800018FFF7F3456780019800E160002011020010DB80000000200000000000001240000",
-            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
-                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124'] },
-                ], }
-        ],
-        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1+ NEXT_HOP; RFC4760)
-        [   "Test attribute NEXT_HOP (NEXT_HOP + MP_REACH_NLRI)", 4,
-            "000000002020010DB800018FFF7F345678002040030401020304800E16000101040708090A0000000000000000000000000000",
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; Two NEXT_HOP; No NLRI; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; Two NEXT_HOP; No NLRI; RFC4760)", 4,
+            "000000002020010DB800018FFF7F345678001340030401020304800E09000101040708090A00",
             { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
                     { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678,
-                      'NEXT_HOP' => ['1.2.3.4', '7.8.9.10'] },
+                      'NEXT_HOP' => ['1.2.3.4', '7.8.9.10'], 'MP_REACH_NLRI' => [], },
                 ], }
         ],
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; 3 NLRI; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=1; 3 NLRI; RFC4760)", 4,
+            "000000002020010DB800018FFF7F3456780017800E14000101040102030400087F177F0102197F020380",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['1.2.3.4'],
+                      'MP_REACH_NLRI' => [ '127.0.0.0/8', '127.1.2.0/23', '127.2.3.128/25' ], },
+                ], }
+        ],
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; One N.H.; No NLRI; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; One N.H.; No NLRI; RFC4760)", 4,
+            "000000002020010DB800018FFF7F3456780018800E150002011020010DB800000002000000000000012400",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124'], 'MP_REACH_NLRI' => [], },
+                ], }
+        ],
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; One N.H.; 2 NLRI; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; One N.H.; 2 NLRI; RFC4760)", 4,
+            "000000002020010DB800018FFF7F3456780026800E230002011020010DB8000000020000000000000124002020010DB83F20010DB8DEADBEE0",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124'],
+                      'MP_REACH_NLRI' => [ '2001:db8::/32', '2001:db8:dead:bee0::/63' ], },
+                ], }
+        ],
+        # Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; Two N.H.; No NLRI; RFC4760)
+        [   "Test attribute NEXT_HOP (MP_REACH_NLRI AFI=2; One N.H.; No NLRI; RFC4760)", 4,
+            "000000002020010DB800018FFF7F3456780028800E250002012020010DB8000000020000000000000124FE80000000000000DEADBEEF1234567800",
+            { 'sequence' => 0, bits => 32, prefix => '2001:db8::', 'entries' => [
+                    { 'peer_index' => 0x8FFF, 'originated_time' => 0x7F345678, 'NEXT_HOP' => ['2001:db8:0:2::124', 'fe80::dead:beef:1234:5678'],
+                      'MP_REACH_NLRI' => [], },
+                ], }
+        ],
+
         [   sub { $Net::MRT::USE_RFC4760 = -1; } ], # Change variable
         # Test attribute NEXT_HOP (1xMP_REACH_NLRI processing disabled)
         [   "Test attribute NEXT_HOP (1xMP_REACH_NLRI processing disabled)", 4,

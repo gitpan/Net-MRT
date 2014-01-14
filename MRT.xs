@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <arpa/inet.h>
 #include "mrttypes.h"
 
@@ -271,7 +272,7 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
 
                                         uint32_t iAsPathEntry;
                                         // Decode AS_SET & AS_SEQUENCE
-                                        AV* avTmpAv2;
+                                        AV* avTmpAv2 = NULL;
                                         if (iPathType == 1) // Compose subarray in case of AS_SET
                                         {
                                             avTmpAv2 = newAV();
@@ -353,34 +354,77 @@ void mrt_decode(HV* const rt, Off_t const msgpos, MRT_MESSAGE* const mh)
                                     if (SvOK(USE_RFC4760) && SvIV(USE_RFC4760) == 1)
                                     {
                                         // read AFI
+                                        uint16_t AFI;
                                         mrt_copy_next(&pBgpAttributes, &iTmpU16, 2, &iBgpAttributesRemainLen);
-                                        iTmpU16 = ntohs(iTmpU16);
+                                        AFI = ntohs(iTmpU16);
                                         // read/skip SAFI
                                         mrt_copy_next(&pBgpAttributes, &iTmpU8, 1, &iBgpAttributesRemainLen);
                                         // read LEN
                                         mrt_copy_next(&pBgpAttributes, &iTmpU8, 1, &iBgpAttributesRemainLen);
+                                        iAttributeRemainLen -= 4;
                                         // validate LEN & decode IP
-                                        if (iTmpU16 == 1 && iTmpU8 == 4)
+                                        bool bSkip = false;
+                                        if (AFI == 1 && iTmpU8 == 4)
                                         {
                                             // Read and decode IPv4
                                             memset(&sa6, 0, sizeof(sa6));
                                             mrt_copy_next(&pBgpAttributes, &sa6, iTmpU8, &iBgpAttributesRemainLen);
+                                            iAttributeRemainLen -= iTmpU8;
                                             inet_ntop(AF_INET, &sa6, cIpAddress, INET6_ADDRSTRLEN);
                                             av_push(avNextHop, newSVpv(cIpAddress, 0));
-                                        } else if (iTmpU16 == 2 && iTmpU8 == 16)
+                                        } else if (AFI == 2 && (iTmpU8 == 16 || iTmpU8 == 32)) // AFI=IPv6
                                         {
                                             // Read and decode IPv6
                                             memset(&sa6, 0, sizeof(sa6));
-                                            mrt_copy_next(&pBgpAttributes, &sa6, iTmpU8, &iBgpAttributesRemainLen);
+                                            mrt_copy_next(&pBgpAttributes, &sa6, 16, &iBgpAttributesRemainLen);
+                                            iAttributeRemainLen -= 16;
                                             inet_ntop(AF_INET6, &sa6, cIpAddress, INET6_ADDRSTRLEN);
                                             av_push(avNextHop, newSVpv(cIpAddress, 0));
+                                            if (iTmpU8 == 32) // Case for combined Global and Link Local IPv6
+                                            {
+                                                memset(&sa6, 0, sizeof(sa6));
+                                                mrt_copy_next(&pBgpAttributes, &sa6, 16, &iBgpAttributesRemainLen);
+                                                iAttributeRemainLen -= 16;
+                                                inet_ntop(AF_INET6, &sa6, cIpAddress, INET6_ADDRSTRLEN);
+                                                av_push(avNextHop, newSVpv(cIpAddress, 0));
+                                            }
                                         } else {
-                                            snprintf(sbuff, SBUFF, "Unsupported/invalid AFI %d len %d", iTmpU16, iTmpU8);
+                                            snprintf(sbuff, SBUFF, "Unsupported/invalid AFI %d len %d", AFI, iTmpU8);
                                             hv_stores(hvEntry, "MP_REACH_NLRI", newSVpv(sbuff, 0));
+                                            // Skip to end of attribute
+                                            bSkip = true;
                                         }
-                                        // Skip to end of attribute
-                                        pBgpAttributes += iAttributeRemainLen - 4 - iTmpU8;
-                                        iBgpAttributesRemainLen -= iAttributeRemainLen - 4 - iTmpU8;
+                                        if (!bSkip) {
+                                            // Process MP_REACH_NLRI
+                                            mrt_copy_next(&pBgpAttributes, &iTmpU8, 1, &iBgpAttributesRemainLen); // Skip reserved byte
+                                            iAttributeRemainLen--;
+
+                                            avTmpAv = (AV *)sv_2mortal((SV *)newAV());
+                                            hv_stores(hvEntry, "MP_REACH_NLRI", newRV_inc((SV *)avTmpAv));
+
+                                            while (iAttributeRemainLen > 0)
+                                            {
+                                                // Read and decode NLRI
+                                                // Decode Prefix Bits
+                                                uint8_t iBits;
+                                                mrt_copy_next(&pBgpAttributes, &iBits, 1, &iBgpAttributesRemainLen);
+                                                iAttributeRemainLen--;
+                                                hv_stores(rt, "bits", newSVuv(iPrefixBits));
+
+                                                // Decode Prefix
+                                                memset(&sa6, 0, sizeof(sa6));
+                                                if (iPrefixBits > 0) {
+                                                    mrt_copy_next(&pBgpAttributes, &sa6, (int)ceil((double)iBits/8), &iBgpAttributesRemainLen);
+                                                    iAttributeRemainLen -= (int)ceil((double)iBits/8);
+                                                }
+                                                inet_ntop((AFI == 1 ? AF_INET : AF_INET6), &sa6, cIpAddress, INET6_ADDRSTRLEN);
+
+                                                snprintf(sbuff, SBUFF, "%s/%d", cIpAddress, iBits);
+                                                av_push(avTmpAv, newSVpv(sbuff, 0));
+                                            } // end while (iAttributeRemainLen > 0)
+                                        }
+                                        pBgpAttributes += iAttributeRemainLen;
+                                        iBgpAttributesRemainLen -= iAttributeRemainLen;
                                     } else if (SvOK(USE_RFC4760) && SvIV(USE_RFC4760) == -1) {
                                         pBgpAttributes += iAttributeLen;
                                         iBgpAttributesRemainLen -= iAttributeLen;
